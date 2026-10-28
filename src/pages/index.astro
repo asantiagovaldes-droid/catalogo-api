@@ -82,6 +82,21 @@ try {
       </div>
     </header>
 
+    <aside class="cart-panel" aria-labelledby="cart-title">
+      <div class="cart-heading">
+        <div>
+          <p class="cart-eyebrow">Tu selección</p>
+          <h2 id="cart-title">Carrito <span id="cart-count" class="cart-count">0</span></h2>
+        </div>
+      </div>
+      <p id="cart-empty" class="cart-empty">Aún no has añadido productos.</p>
+      <ul id="cart-items" class="cart-items" aria-live="polite"></ul>
+      <div class="cart-total">
+        <span>Total</span>
+        <strong id="cart-total">$0.00</strong>
+      </div>
+    </aside>
+
     {mensajeError && <p role="alert" class="alert-error">{mensajeError}</p>}
 
     <section id="catalog-grid" class="grid-productos" aria-label="Productos disponibles">
@@ -89,6 +104,7 @@ try {
         productos.length > 0 ? (
           productos.map((producto) => (
             <ProductoCard
+              id={producto.id}
               title={producto.title}
               price={producto.price}
               category={producto.category}
@@ -110,6 +126,108 @@ try {
 
   const botonVerColeccion = document.querySelector<HTMLButtonElement>("[data-action='scroll']");
   const botonMostrarTodo = document.querySelector<HTMLButtonElement>("[data-action='clear']");
+  const carritoLista = document.querySelector<HTMLUListElement>("#cart-items");
+  const carritoVacio = document.querySelector<HTMLParagraphElement>("#cart-empty");
+  const carritoCount = document.querySelector<HTMLElement>("#cart-count");
+  const carritoTotal = document.querySelector<HTMLElement>("#cart-total");
+  const carrito = new Map<number, { title: string; price: number; quantity: number }>();
+
+  const actualizarCarrito = () => {
+    if (!carritoLista || !carritoVacio || !carritoCount || !carritoTotal) return;
+
+    carritoLista.replaceChildren();
+    let cantidadTotal = 0;
+    let precioTotal = 0;
+
+    carrito.forEach((producto, id) => {
+      cantidadTotal += producto.quantity;
+      precioTotal += producto.price * producto.quantity;
+
+      const item = document.createElement("li");
+      item.className = "cart-item";
+
+      const nombre = document.createElement("span");
+      nombre.className = "cart-item-title";
+      nombre.textContent = producto.title;
+
+      const controles = document.createElement("div");
+      controles.className = "cart-item-controls";
+
+      const botonRestar = document.createElement("button");
+      botonRestar.type = "button";
+      botonRestar.className = "quantity-button";
+      botonRestar.dataset.cartAction = "decrease";
+      botonRestar.dataset.productId = String(id);
+      botonRestar.setAttribute("aria-label", `Quitar una unidad de ${producto.title}`);
+      botonRestar.textContent = "−";
+
+      const cantidad = document.createElement("span");
+      cantidad.className = "cart-item-quantity";
+      cantidad.textContent = String(producto.quantity);
+
+      const botonSumar = document.createElement("button");
+      botonSumar.type = "button";
+      botonSumar.className = "quantity-button";
+      botonSumar.dataset.cartAction = "increase";
+      botonSumar.dataset.productId = String(id);
+      botonSumar.setAttribute("aria-label", `Añadir una unidad de ${producto.title}`);
+      botonSumar.textContent = "+";
+
+      controles.append(botonRestar, cantidad, botonSumar);
+
+      const subtotal = document.createElement("span");
+      subtotal.className = "cart-item-subtotal";
+      subtotal.textContent = `$${(producto.price * producto.quantity).toFixed(2)}`;
+
+      item.append(nombre, controles, subtotal);
+      carritoLista.append(item);
+    });
+
+    carritoCount.textContent = String(cantidadTotal);
+    carritoCount.setAttribute("aria-label", `${cantidadTotal} productos en el carrito`);
+    carritoTotal.textContent = `$${precioTotal.toFixed(2)}`;
+    carritoVacio.hidden = carrito.size > 0;
+  };
+
+  document.querySelector<HTMLElement>("#catalog-grid")?.addEventListener("click", (event) => {
+    const boton = (event.target as HTMLElement).closest<HTMLButtonElement>("[data-add-to-cart]");
+    const tarjeta = boton?.closest<HTMLElement>(".producto");
+    if (!boton || !tarjeta) return;
+
+    const id = Number(tarjeta.dataset.productId);
+    const price = Number(tarjeta.dataset.price);
+    const title = tarjeta.dataset.productTitle ?? "Producto";
+    const producto = carrito.get(id);
+
+    if (producto) {
+      producto.quantity += 1;
+    } else {
+      carrito.set(id, { title, price, quantity: 1 });
+    }
+
+    actualizarCarrito();
+  });
+
+  carritoLista?.addEventListener("click", (event) => {
+    const boton = (event.target as HTMLElement).closest<HTMLButtonElement>("[data-cart-action]");
+    if (!boton) return;
+
+    const id = Number(boton.dataset.productId);
+    const producto = carrito.get(id);
+    if (!producto) return;
+
+    if (boton.dataset.cartAction === "increase") {
+      producto.quantity += 1;
+    } else if (boton.dataset.cartAction === "decrease") {
+      if (producto.quantity === 1) {
+        carrito.delete(id);
+      } else {
+        producto.quantity -= 1;
+      }
+    }
+
+    actualizarCarrito();
+  });
 
   if (buscador) {
     buscador.addEventListener("input", () => {
@@ -143,4 +261,6 @@ try {
       buscador.focus();
     });
   }
+
+  actualizarCarrito();
 </script>
