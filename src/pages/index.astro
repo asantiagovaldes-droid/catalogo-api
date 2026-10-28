@@ -1,0 +1,146 @@
+---
+import Layout from "../layouts/Layout.astro";
+import ProductoCard from "../components/ProductoCard.astro";
+
+interface Producto {
+  id: number;
+  title: string;
+  price: number;
+  category: string;
+  rating: number;
+  thumbnail: string;
+}
+
+let productos: Producto[] = [];
+let mensajeError = "";
+
+try {
+  const respuesta = await fetch("https://dummyjson.com/products?limit=12");
+  if (!respuesta.ok) {
+    throw new Error(`Error HTTP: ${respuesta.status}`);
+  }
+  const datos = await respuesta.json();
+  productos = datos.products ?? [];
+} catch (error) {
+  console.error("Error al consultar la API:", error);
+  mensajeError = "No fue posible cargar los productos.";
+}
+---
+
+<Layout title="Catálogo de productos">
+  <main class="catalogo-page">
+    <header class="catalogo-hero">
+      <div class="hero-badges">
+        <span class="badge badge-soft">✨ Nuevo</span>
+        <span class="badge badge-contrast">Top picks</span>
+      </div>
+
+      <div class="hero-copy">
+        <p class="eyebrow">Colección premium</p>
+        <h1>Catálogo de Productos</h1>
+        <p class="subtitle">
+          Explora artículos destacados, tendencias y ofertas seleccionadas para
+          cada estilo.
+        </p>
+
+        <div class="hero-actions">
+          <button class="cta cta-primary" type="button" data-action="scroll">
+            Ver colección
+          </button>
+          <button class="cta cta-secondary" type="button" data-action="clear">
+            Mostrar todo
+          </button>
+        </div>
+      </div>
+
+      <div class="search-container" aria-label="Buscar producto">
+        <label for="buscador" class="sr-only">Buscar producto</label>
+        <div class="search-input-wrap">
+          <span class="search-icon" aria-hidden="true">⌕</span>
+          <input
+            id="buscador"
+            type="search"
+            placeholder="Buscar productos..."
+            autocomplete="off"
+          />
+        </div>
+      </div>
+
+      <div class="hero-stats" aria-label="Resumen del catálogo">
+        <div class="stat-card">
+          <strong>1200+</strong>
+          <span>Productos</span>
+        </div>
+        <div class="stat-card">
+          <strong>4.8/5</strong>
+          <span>Valoración</span>
+        </div>
+        <div class="stat-card">
+          <strong>24h</strong>
+          <span>Entrega</span>
+        </div>
+      </div>
+    </header>
+
+    {mensajeError && <p role="alert" class="alert-error">{mensajeError}</p>}
+
+    <section id="catalog-grid" class="grid-productos" aria-label="Productos disponibles">
+      {
+        productos.length > 0 ? (
+          productos.map((producto) => (
+            <ProductoCard
+              title={producto.title}
+              price={producto.price}
+              category={producto.category}
+              rating={producto.rating}
+              thumbnail={producto.thumbnail}
+            />
+          ))
+        ) : (
+          !mensajeError && <p class="no-results">No hay productos disponibles.</p>
+        )
+      }
+    </section>
+  </main>
+</Layout>
+
+<script>
+  const buscador = document.querySelector<HTMLInputElement>("#buscador");
+  const tarjetas = document.querySelectorAll<HTMLElement>(".producto");
+
+  const botonVerColeccion = document.querySelector<HTMLButtonElement>("[data-action='scroll']");
+  const botonMostrarTodo = document.querySelector<HTMLButtonElement>("[data-action='clear']");
+
+  if (buscador) {
+    buscador.addEventListener("input", () => {
+      const termino = buscador.value.toLowerCase().trim();
+
+      tarjetas.forEach((tarjeta) => {
+        const titulo = tarjeta.dataset.title ?? "";
+
+        if (titulo.includes(termino)) {
+          tarjeta.removeAttribute("hidden");
+        } else {
+          tarjeta.setAttribute("hidden", "");
+        }
+      });
+    });
+  }
+
+  if (botonVerColeccion) {
+    botonVerColeccion.addEventListener("click", () => {
+      const catalogGrid = document.getElementById("catalog-grid");
+      catalogGrid?.scrollIntoView({ behavior: "smooth", block: "start" });
+      buscador?.focus();
+    });
+  }
+
+  if (botonMostrarTodo) {
+    botonMostrarTodo.addEventListener("click", () => {
+      if (!buscador) return;
+      buscador.value = "";
+      buscador.dispatchEvent(new Event("input"));
+      buscador.focus();
+    });
+  }
+</script>

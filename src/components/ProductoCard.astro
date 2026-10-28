@@ -1,0 +1,34 @@
+---
+interface Props {
+  title: string;
+  price: number;
+  category: string;
+  rating: number;
+  thumbnail: string;
+}
+
+const { title, price, category, rating, thumbnail } = Astro.props;
+---
+
+<article class="producto" data-title={title.toLowerCase()}>
+  <div class="producto-media">
+    <img src={thumbnail} alt={`Imagen de ${title}`} loading="lazy" />
+    <span class="categoria">{category}</span>
+  </div>
+
+  <div class="producto-info">
+    <h2>{title}</h2>
+
+    <div class="detalles">
+      <div class="precio-wrap">
+        <span class="precio-label">Desde</span>
+        <span class="precio">${price.toFixed(2)}</span>
+      </div>
+
+      <span class="rating" aria-label={`Calificación ${rating} de 5`}>
+        <span class="star">★</span>
+        {rating}
+      </span>
+    </div>
+  </div>
+</article>
